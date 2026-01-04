@@ -2,9 +2,11 @@
 param namePrefix string
 param location string = resourceGroup().location
 
-// Storage Account (para blobs)
 var storageName = toLower(replace('${namePrefix}stg', '-', ''))
+var functionName = toLower('${namePrefix}-api')
+var planName = '${namePrefix}-func-plan'
 
+// Storage
 resource stg 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageName
   location: location
@@ -23,16 +25,20 @@ resource claimsContainer 'Microsoft.Storage/storageAccounts/blobServices/contain
   name: '${stg.name}/default/claims'
 }
 
-// Plan consumo para Functions
+// Connection string para Functions (Dev/MVP)
+var stgKey = listKeys(stg.id, stg.apiVersion).keys[0].value
+var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${stg.name};AccountKey=${stgKey};EndpointSuffix=core.windows.net'
+
+// Plan consumo
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: '${namePrefix}-func-plan'
+  name: planName
   location: location
   sku: { name: 'Y1', tier: 'Dynamic' }
 }
 
-// Function App (Linux, .NET 8 isolated)
+// Function App (Linux + .NET 8 isolated)
 resource func 'Microsoft.Web/sites@2023-12-01' = {
-  name: toLower('${namePrefix}-api')
+  name: functionName
   location: location
   kind: 'functionapp,linux'
   properties: {
@@ -41,13 +47,9 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       appSettings: [
-        // OJO: Para el primer MVP, esta cadena queda incompleta.
-        // Luego la corregimos con el connection string real (o MI).
-        { name: 'AzureWebJobsStorage', value: 'UseDevelopmentStorage=true' }
+        { name: 'AzureWebJobsStorage', value: storageConn }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
         { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
-
-        // Usaremos esto en la API para formar URI del storage
         { name: 'STORAGE_ACCOUNT', value: stg.name }
       ]
     }
