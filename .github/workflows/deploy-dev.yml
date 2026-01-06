@@ -42,6 +42,20 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
 
+      - name: Diagnostics (disk + docker)  ##New VC
+        run: |
+          set -e
+          echo "=== DISK ==="
+          df -h
+          echo "=== DOCKER INFO ==="
+          docker info || true
+          echo "=== DOCKER DF ==="
+          docker system df || true
+          echo "=== LIST REPO ROOT ==="
+          ls -la
+          echo "=== LIST UNITY PATH ==="
+          ls -la unity || true
+
       - name: Build Unity (Android)
         uses: game-ci/unity-builder@v4
         env:
