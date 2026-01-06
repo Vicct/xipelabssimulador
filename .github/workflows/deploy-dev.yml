@@ -2,110 +2,99 @@ name: XipeLabs - Dev Pipeline
 
 on:
   push:
-    branches:
-      - dev	#Branch de Git
+    branches: [ "dev" ]
   workflow_dispatch:
 
 env:
   RESOURCE_GROUP: rg-xipelabs-dev
-  LOCATION: centralus
-  NAME_PREFIX: xipedev
+  LOCATION: eastus
+  NAME_PREFIX: xipelabs-dev
 
 jobs:
-
-  # ------------------------------------------------------------
-  # 1. Build Unity (Android)
-  # ------------------------------------------------------------
-build-unity:
-  name: Build Unity Project (Dev)
-  runs-on: ubuntu-latest
-
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Free disk space
-      uses: jlumbroso/free-disk-space@main
-      with:
-        tool-cache: true
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        swap-storage: true
-
-    - name: Cache Unity Library
-      uses: actions/cache@v4
-      with:
-        path: unity/Library
-        key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
-        restore-keys: |
-          Library-
-
-    # Verificación: confirma que el secret llega (no imprime el valor)
-    - name: Check UNITY_LICENSE presence
-      shell: bash
-      env:
-        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-      run: |
-        if [ -z "$UNITY_LICENSE" ]; then
-          echo "UNITY_LICENSE is EMPTY or NOT PROVIDED"
-          exit 1
-        fi
-        echo "UNITY_LICENSE is present (non-empty)"
-
-    - name: Build Unity (Android)
-      uses: game-ci/unity-builder@v4
-      env:
-        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-      with:
-        projectPath: ./unity
-        unityVersion: 2022.3.22f1
-        targetPlatform: Android
-
-  # ------------------------------------------------------------
-  # 2. Deploy Infrastructure (Bicep)
-  # ------------------------------------------------------------
-  deploy-infra:
-    name: Deploy Azure Infrastructure (Dev)
+  build-unity:
+    name: Build Unity Project (Dev)
     runs-on: ubuntu-latest
-    needs: build-unity
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to Azure
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Check UNITY_LICENSE presence
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "UNITY_LICENSE is EMPTY or NOT PROVIDED"
+            exit 1
+          fi
+          echo "UNITY_LICENSE is present (non-empty)"
+
+      - name: Build Unity (Android)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: ./unity
+          unityVersion: 2022.3.22f1
+          targetPlatform: Android
+
+      - name: Upload Unity Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-android-dev
+          path: build/Android/
+
+  deploy-infra:
+    name: Deploy Azure Infrastructure (Dev)
+    runs-on: ubuntu-latest
+    needs: build-unity
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Create Resource Group (if not exists)
         run: |
-          az group create \
-            --name $RESOURCE_GROUP \
-            --location $LOCATION
+          az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
 
-      - name: Deploy Bicep templates
+      - name: Deploy Bicep
         run: |
           az deployment group create \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group "$RESOURCE_GROUP" \
             --template-file infra/main.bicep \
-            --parameters namePrefix=$NAME_PREFIX
+            --parameters namePrefix="$NAME_PREFIX"
 
-  # ------------------------------------------------------------
-  # 3. Deploy Azure Functions (API)
-  # ------------------------------------------------------------
   deploy-api:
     name: Deploy Azure Functions API (Dev)
     runs-on: ubuntu-latest
     needs: deploy-infra
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to Azure
+      - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
