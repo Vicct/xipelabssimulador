@@ -47,6 +47,16 @@ jobs:
           if [ -z "$UNITY_EMAIL" ]; then echo "UNITY_EMAIL missing/empty"; exit 1; fi
           if [ -z "$UNITY_PASSWORD" ]; then echo "UNITY_PASSWORD missing/empty"; exit 1; fi
           echo "All Unity secrets are present (non-empty)."
+          echo "UNITY_EMAIL length: ${#UNITY_EMAIL}"
+          echo "UNITY_PASSWORD length: ${#UNITY_PASSWORD}"
+          echo "UNITY_LICENSE length: ${#UNITY_LICENSE}"
+
+      - name: Activate Unity (Personal License)
+        uses: game-ci/unity-activate@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
 
       - name: Build Unity (Android)
         uses: game-ci/unity-builder@v4
@@ -59,6 +69,7 @@ jobs:
           unityVersion: 2022.3.22f1
           targetPlatform: Android
           versioning: None
+          skipActivation: true
 
       - name: Upload Unity Build Artifact
         uses: actions/upload-artifact@v4
