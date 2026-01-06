@@ -8,7 +8,7 @@ on:
 env:
   RESOURCE_GROUP: rg-xipelabs-dev
   LOCATION: eastus
-  NAME_PREFIX: xipelabs-dev
+  NAME_PREFIX: xipedev
 
 jobs:
   build-unity:
@@ -36,17 +36,6 @@ jobs:
           restore-keys: |
             Library-
 
-      - name: Check UNITY_LICENSE presence
-        shell: bash
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        run: |
-          if [ -z "$UNITY_LICENSE" ]; then
-            echo "UNITY_LICENSE is EMPTY or NOT PROVIDED"
-            exit 1
-          fi
-          echo "UNITY_LICENSE is present (non-empty)"
-
       - name: Check Unity secrets presence (email/password/license)
         shell: bash
         env:
@@ -59,21 +48,6 @@ jobs:
           if [ -z "$UNITY_PASSWORD" ]; then echo "UNITY_PASSWORD missing/empty"; exit 1; fi
           echo "All Unity secrets are present (non-empty)."
 
-      - name: Write Unity license file
-        shell: bash
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/unity-license"
-          echo "$UNITY_LICENSE" > "$RUNNER_TEMP/unity-license/Unity.ulf"
-          echo "License file written to runner temp."
-
-
-	- name: Clean workspace artifacts
- 	shell: bash
-  	run: |
-    	  rm -rf unity-license || true
-
       - name: Build Unity (Android)
         uses: game-ci/unity-builder@v4
         env:
@@ -84,7 +58,7 @@ jobs:
           projectPath: ./unity
           unityVersion: 2022.3.22f1
           targetPlatform: Android
-	  versioning: None
+          versioning: None
 
       - name: Upload Unity Build Artifact
         uses: actions/upload-artifact@v4
