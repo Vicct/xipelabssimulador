@@ -42,16 +42,10 @@ jobs:
           large-packages: true
           swap-storage: true
 
-
-      - name: Setup Android SDK  	#New VC
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Docker cleanup
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0"
+          docker system prune -af || true
+          df -h
 
       - name: Diagnostics (disk + docker)  ##New VC
         run: |
@@ -72,7 +66,7 @@ jobs:
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
-          projectPath: unity
+          projectPath: ./unity
           targetPlatform: Android
           unityVersion: 2022.3.22f1
 
