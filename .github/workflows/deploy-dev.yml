@@ -59,14 +59,19 @@ jobs:
           if [ -z "$UNITY_PASSWORD" ]; then echo "UNITY_PASSWORD missing/empty"; exit 1; fi
           echo "All Unity secrets are present (non-empty)."
 
-      - name: Write Unity license file
-        shell: bash
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        run: |
-          mkdir -p unity-license
-          echo "$UNITY_LICENSE" > unity-license/Unity.ulf
-          echo "License file written."
+	- name: Write Unity license file
+  	shell: bash
+ 	env:
+    	  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  	run: |
+   	  mkdir -p "$RUNNER_TEMP/unity-license"
+    	  echo "$UNITY_LICENSE" > "$RUNNER_TEMP/unity-license/Unity.ulf"
+    	  echo "License file written to runner temp."
+
+	- name: Clean workspace artifacts
+ 	shell: bash
+  	run: |
+    	  rm -rf unity-license || true
 
       - name: Build Unity (Android)
         uses: game-ci/unity-builder@v4
@@ -78,6 +83,7 @@ jobs:
           projectPath: ./unity
           unityVersion: 2022.3.22f1
           targetPlatform: Android
+	  versioning: None
 
       - name: Upload Unity Build Artifact
         uses: actions/upload-artifact@v4
