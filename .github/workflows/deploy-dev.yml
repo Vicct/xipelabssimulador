@@ -59,14 +59,15 @@ jobs:
           if [ -z "$UNITY_PASSWORD" ]; then echo "UNITY_PASSWORD missing/empty"; exit 1; fi
           echo "All Unity secrets are present (non-empty)."
 
-	- name: Write Unity license file
-  	shell: bash
- 	env:
-    	  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-  	run: |
-   	  mkdir -p "$RUNNER_TEMP/unity-license"
-    	  echo "$UNITY_LICENSE" > "$RUNNER_TEMP/unity-license/Unity.ulf"
-    	  echo "License file written to runner temp."
+      - name: Write Unity license file
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/unity-license"
+          echo "$UNITY_LICENSE" > "$RUNNER_TEMP/unity-license/Unity.ulf"
+          echo "License file written to runner temp."
+
 
 	- name: Clean workspace artifacts
  	shell: bash
