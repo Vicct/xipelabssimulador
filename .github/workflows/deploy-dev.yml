@@ -16,65 +16,52 @@ jobs:
   # ------------------------------------------------------------
   # 1. Build Unity (Android)
   # ------------------------------------------------------------
-  build-unity:
-    name: Build Unity Project (Dev)
-    runs-on: ubuntu-latest
+build-unity:
+  name: Build Unity Project (Dev)
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Cache Unity Library
-        uses: actions/cache@v4
-        with:
-          path: unity/Library
-          key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
-          restore-keys: |
-            Library-
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        swap-storage: true
 
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          swap-storage: true
+    - name: Cache Unity Library
+      uses: actions/cache@v4
+      with:
+        path: unity/Library
+        key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+        restore-keys: |
+          Library-
 
-      - name: Docker cleanup
-        run: |
-          docker system prune -af || true
-          df -h
+    # Verificación: confirma que el secret llega (no imprime el valor)
+    - name: Check UNITY_LICENSE presence
+      shell: bash
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      run: |
+        if [ -z "$UNITY_LICENSE" ]; then
+          echo "UNITY_LICENSE is EMPTY or NOT PROVIDED"
+          exit 1
+        fi
+        echo "UNITY_LICENSE is present (non-empty)"
 
-      - name: Diagnostics (disk + docker)  ##New VC
-        run: |
-          set -e
-          echo "=== DISK ==="
-          df -h
-          echo "=== DOCKER INFO ==="
-          docker info || true
-          echo "=== DOCKER DF ==="
-          docker system df || true
-          echo "=== LIST REPO ROOT ==="
-          ls -la
-          echo "=== LIST UNITY PATH ==="
-          ls -la unity || true
-
-      - name: Build Unity (Android)
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          projectPath: ./unity
-          targetPlatform: Android
-          unityVersion: 2022.3.22f1
-
-      - name: Upload Unity Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: unity-android-dev
-          path: build/Android/
+    - name: Build Unity (Android)
+      uses: game-ci/unity-builder@v4
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      with:
+        projectPath: ./unity
+        unityVersion: 2022.3.22f1
+        targetPlatform: Android
 
   # ------------------------------------------------------------
   # 2. Deploy Infrastructure (Bicep)
