@@ -32,6 +32,16 @@ jobs:
           restore-keys: |
             Library-
 
+      - name: Setup Android SDK  	#New VC
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+
       - name: Build Unity (Android)
         uses: game-ci/unity-builder@v4
         env:
