@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1808dc5e8677b9f43a9ce927452d98a8, type: 3}
+  m_Name: BirthdayParty
+  m_EditorClassIdentifier: 
+  eventName: Birthday Party
+  description: It's a friend's birthday! How will you celebrate?
+  icon: {fileID: 0}
+  eventType: 5
+  baseAmount: 0
+  affectedByProfessionModifiers: 0
+  probability: 0.12
+  minTurnToAppear: 1
+  canRepeat: 0
+  hasChoice: 1
+  choices:
+  - choiceText: Throw a big party
+    financialImpact: -800
+    resultDescription: Rent a venue and invite everyone
+  - choiceText: Small gathering at home
+    financialImpact: -300
+    resultDescription: Intimate celebration with close friends
+  - choiceText: Skip it this year
+    financialImpact: 0
+    resultDescription: Just send a message

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1190637a2ed8574f8d674bc0b20678f, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  totalTurns: 12
+  minPlayers: 1
+  maxPlayers: 4
+  startingCash: 5000
+  inflationRate: 0.02
+  savingsInterestRate: 3
+  eventsPerTurn: 1
+  eventChancePerTurn: 0.7
+  availableProfessions:
+  - {fileID: 11400000, guid: b69b1f91da11fbc4e8e7cd819f9f22f1, type: 2}
+  - {fileID: 11400000, guid: 67f538d70144641478c032ef805dd959, type: 2}
+  availableEvents:
+  - {fileID: 11400000, guid: 9927730c5fc80774fae1c24a994b87d2, type: 2}
+  - {fileID: 11400000, guid: 73d430b112c85c948af0bae810f1426b, type: 2}
+  - {fileID: 11400000, guid: 27d2e42fd1fed7d43b40ef5e09bb63de, type: 2}

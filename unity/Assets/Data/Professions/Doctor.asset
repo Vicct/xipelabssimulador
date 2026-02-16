@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181c4058abf1e8b4faf674c66be8b56c, type: 3}
+  m_Name: Doctor
+  m_EditorClassIdentifier: 
+  professionName: Doctor
+  description: Medical professional providing healthcare
+  icon: {fileID: 0}
+  monthlySalary: 12000
+  startingBonus: 10000
+  salaryGrowthRate: 0.04
+  tier: 0
+  hasHealthInsurance: 1
+  hasRetirementPlan: 1
+  educationCostPaid: 200000
+  medicalExpenseModifier: 0.3
+  taxRate: 0.28
