@@ -87,13 +87,7 @@ public class GameManager : MonoBehaviour
         {
             EndGame();
         }
-        else
-        {
-            if (turnManager != null)
-            {
-                turnManager.StartNewTurn();
-            }
-        }
+        // TurnManager handles signaling OnTurnReady for the next turn
     }
 
     void EndGame()
@@ -106,7 +100,12 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
-        SceneManager.LoadScene("MainMenu");
         gameState = new GameState();
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    public void PlayAgain()
+    {
+        StartNewGame(gameState.gameMode);
     }
 }

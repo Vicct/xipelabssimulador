@@ -30,7 +30,9 @@ public class GameSummaryController : MonoBehaviour
         }
 
         PlayerState winner = gameState.GetWinner();
-        winnerText.text = $"Winner: {winner.playerName}\n${winner.GetNetWorth():N0}";
+        winnerText.text = $"Winner: {winner.playerName}\n" +
+                          $"{winner.profession.ProfessionName}\n" +
+                          $"Net Worth: ${winner.GetNetWorth():N0}";
 
         var sortedPlayers = gameState.players.OrderByDescending(p => p.GetNetWorth()).ToList();
 
@@ -40,13 +42,16 @@ public class GameSummaryController : MonoBehaviour
             Text rankText = rankObj.GetComponentInChildren<Text>();
 
             PlayerState player = sortedPlayers[i];
-            rankText.text = $"{i + 1}. {player.playerName} - ${player.GetNetWorth():N0}";
+            rankText.text = $"{i + 1}. {player.playerName} ({player.profession.ProfessionName})\n" +
+                            $"   Net Worth: ${player.GetNetWorth():N0}  |  " +
+                            $"Earned: ${player.totalEarned:N0}  |  " +
+                            $"Spent: ${player.totalSpent:N0}";
         }
     }
 
     void OnPlayAgain()
     {
-        GameManager.Instance.ReturnToMainMenu();
+        GameManager.Instance.PlayAgain();
     }
 
     void OnMainMenu()
