@@ -52,6 +52,7 @@ bin/
 obj/
 
 # OS
+nul
 .DS_Store
 .DS_Store?
 ._*

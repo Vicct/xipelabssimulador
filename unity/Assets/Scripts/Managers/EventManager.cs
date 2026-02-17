@@ -27,7 +27,7 @@ public class EventManager : MonoBehaviour
         float roll = Random.value;
         if (roll > config.EventChancePerTurn)
         {
-            Debug.Log("No event this turn");
+            Debug.Log($"No event this turn (roll: {roll:F2} > chance: {config.EventChancePerTurn})");
             return false;
         }
 
@@ -51,11 +51,12 @@ public class EventManager : MonoBehaviour
     List<FinancialEventData> GetAvailableEvents(PlayerState player)
     {
         List<FinancialEventData> available = new List<FinancialEventData>();
-        int currentTurn = gameState.currentTurn;
+        // currentTurn is 0-based internally, but MinTurnToAppear is 1-based
+        int displayTurn = gameState.currentTurn + 1;
 
         foreach (var eventData in config.AvailableEvents)
         {
-            if (currentTurn < eventData.MinTurnToAppear)
+            if (displayTurn < eventData.MinTurnToAppear)
                 continue;
 
             if (!eventData.CanRepeat && player.eventEncounters.ContainsKey(eventData.name))
@@ -94,19 +95,20 @@ public class EventManager : MonoBehaviour
         }
         player.eventEncounters[eventData.name]++;
 
-        OnEventTriggered?.Invoke(eventData, player);
+        // Always set phase to PlayerDecision so the turn waits for popup close
+        gameState.currentPhase = GamePhase.PlayerDecision;
 
-        if (eventData.HasChoice)
+        // Process money immediately for non-choice events (popup just shows info)
+        if (!eventData.HasChoice)
         {
-            gameState.currentPhase = GamePhase.PlayerDecision;
+            ResolveEventMoney(eventData, player);
         }
-        else
-        {
-            ResolveEventAutomatic(eventData, player);
-        }
+
+        // Show the popup (UIManager listens to this event)
+        OnEventTriggered?.Invoke(eventData, player);
     }
 
-    void ResolveEventAutomatic(FinancialEventData eventData, PlayerState player)
+    void ResolveEventMoney(FinancialEventData eventData, PlayerState player)
     {
         switch (eventData.EventType)
         {
@@ -120,7 +122,13 @@ public class EventManager : MonoBehaviour
                 economyManager.ProcessIncome(player, eventData);
                 break;
         }
+    }
 
+    /// <summary>
+    /// Called when player closes the event popup (for non-choice events)
+    /// </summary>
+    public void ResolveCurrentEvent()
+    {
         OnEventResolved?.Invoke();
         gameState.currentPhase = GamePhase.TurnEnd;
     }

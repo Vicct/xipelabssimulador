@@ -92,6 +92,13 @@ public class EventPopup : MonoBehaviour
 
     void OnCloseClicked()
     {
+        // Resolve the event (changes phase so turn can continue)
+        EventManager eventManager = FindObjectOfType<EventManager>();
+        if (eventManager != null)
+        {
+            eventManager.ResolveCurrentEvent();
+        }
+
         Hide();
     }
 
