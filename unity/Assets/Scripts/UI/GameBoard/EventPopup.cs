@@ -31,26 +31,28 @@ public class EventPopup : MonoBehaviour
         eventDescriptionText.text = eventData.Description;
         eventIcon.sprite = eventData.Icon;
 
-        int amount = eventData.BaseAmount;
-        if (amount < 0)
-        {
-            amountText.text = $"Cost: ${Mathf.Abs(amount):N0}";
-            amountText.color = Color.red;
-        }
-        else
-        {
-            amountText.text = $"Gain: ${amount:N0}";
-            amountText.color = Color.green;
-        }
-
-        ClearChoices();
         if (eventData.HasChoice)
         {
+            amountText.text = "Choose an option:";
+            amountText.color = new Color(1f, 0.85f, 0.3f, 1f); // Yellow
             closeButton.gameObject.SetActive(false);
+            ClearChoices();
             CreateChoiceButtons(eventData.Choices);
         }
         else
         {
+            int amount = eventData.BaseAmount;
+            if (amount < 0)
+            {
+                amountText.text = $"Cost: ${Mathf.Abs(amount):N0}";
+                amountText.color = new Color(1f, 0.3f, 0.3f, 1f); // Red
+            }
+            else
+            {
+                amountText.text = $"Gain: ${amount:N0}";
+                amountText.color = new Color(0.3f, 1f, 0.5f, 1f); // Green
+            }
+            ClearChoices();
             closeButton.gameObject.SetActive(true);
         }
 
@@ -62,7 +64,15 @@ public class EventPopup : MonoBehaviour
         foreach (var choice in choices)
         {
             Button choiceBtn = Instantiate(choiceButtonPrefab, choiceContainer);
-            choiceBtn.GetComponentInChildren<Text>().text = choice.choiceText;
+            Text btnText = choiceBtn.GetComponentInChildren<Text>();
+
+            string impactLabel = "";
+            if (choice.financialImpact > 0)
+                impactLabel = $" (+${choice.financialImpact:N0})";
+            else if (choice.financialImpact < 0)
+                impactLabel = $" (-${Mathf.Abs(choice.financialImpact):N0})";
+
+            btnText.text = $"{choice.choiceText}{impactLabel}";
 
             EventChoice selectedChoice = choice;
             choiceBtn.onClick.AddListener(() => OnChoiceSelected(selectedChoice));
