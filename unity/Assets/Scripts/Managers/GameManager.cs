@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Photon.Pun;
 
 public class GameManager : MonoBehaviour
 {
@@ -44,8 +45,17 @@ public class GameManager : MonoBehaviour
         Debug.Log("GameManager initialized");
     }
 
+    /// <summary>
+    /// Starts a new solo game. For multiplayer, use PrepareMultiplayerGame() instead.
+    /// </summary>
     public void StartNewGame(GameMode mode)
     {
+        if (mode == GameMode.Multiplayer)
+        {
+            PrepareMultiplayerGame();
+            return;
+        }
+
         gameState = new GameState
         {
             gameMode = mode,
@@ -67,6 +77,38 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene("RoleSelection");
     }
 
+    /// <summary>
+    /// Initializes GameState for multiplayer but does NOT create players or load scenes.
+    /// Players are added when joining a Photon room (in LobbyController).
+    /// </summary>
+    public void PrepareMultiplayerGame()
+    {
+        gameState = new GameState
+        {
+            gameMode = GameMode.Multiplayer,
+            totalTurns = gameConfig.TotalTurns,
+            sessionId = System.Guid.NewGuid().ToString(),
+            gameStartTime = Time.time
+        };
+        gameState.currentPhase = GamePhase.Setup;
+        Debug.Log("Multiplayer game prepared, waiting for lobby...");
+    }
+
+    /// <summary>
+    /// Called by LobbyController when all players are ready. Master Client loads RoleSelection.
+    /// </summary>
+    public void StartMultiplayerGame()
+    {
+        gameState.currentPhase = GamePhase.RoleSelection;
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.LoadLevel("RoleSelection");
+        }
+
+        Debug.Log("Multiplayer game starting - loading RoleSelection");
+    }
+
     public void OnAllPlayersReady()
     {
         if (!gameState.AllPlayersReady())
@@ -76,7 +118,18 @@ public class GameManager : MonoBehaviour
         }
 
         gameState.currentPhase = GamePhase.Playing;
-        SceneManager.LoadScene("GameBoard");
+
+        if (gameState.gameMode == GameMode.Multiplayer)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.LoadLevel("GameBoard");
+            }
+        }
+        else
+        {
+            SceneManager.LoadScene("GameBoard");
+        }
     }
 
     public void AdvanceTurn()
@@ -95,17 +148,38 @@ public class GameManager : MonoBehaviour
         gameState.currentPhase = GamePhase.GameOver;
         gameState.isGameOver = true;
         Debug.Log("Game Over!");
-        SceneManager.LoadScene("GameSummary");
+
+        if (gameState.gameMode == GameMode.Multiplayer)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.LoadLevel("GameSummary");
+            }
+        }
+        else
+        {
+            SceneManager.LoadScene("GameSummary");
+        }
     }
 
     public void ReturnToMainMenu()
     {
+        if (PhotonManager.Instance != null && PhotonManager.Instance.IsConnected)
+        {
+            PhotonManager.Instance.Disconnect();
+        }
+
         gameState = new GameState();
         SceneManager.LoadScene("MainMenu");
     }
 
     public void PlayAgain()
     {
-        StartNewGame(gameState.gameMode);
+        if (gameState.gameMode == GameMode.Multiplayer)
+        {
+            ReturnToMainMenu();
+            return;
+        }
+        StartNewGame(GameMode.Solo);
     }
 }

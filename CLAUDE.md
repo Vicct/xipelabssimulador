@@ -13,11 +13,13 @@ XipeLabsSimulador/
 ├── infra/main.bicep       # Infrastructure as Code
 └── unity/                 # Proyecto Unity 2022.3 LTS ← UNITY HUB APUNTA AQUÍ
     ├── Assets/
-    │   ├── Scenes/        # MainMenu, RoleSelection, BaseScene
+    │   ├── Scenes/        # MainMenu, RoleSelection, GameBoard, GameSummary, Lobby
     │   ├── Scripts/       # Managers, UI, Data, Multiplayer, Utilities
-    │   │   └── Editor/    # CreateAllGameAssets.cs (crea ScriptableObjects)
+    │   │   ├── Editor/    # CreateAllGameAssets.cs, CreateLobbyScene.cs, etc.
+    │   │   ├── Multiplayer/ # PhotonManager, NetworkTurnManager, PlayFabManager
+    │   │   └── UI/Lobby/  # LobbyController, RoomListItem, PlayerListItem
     │   ├── Data/          # ScriptableObjects (Config, Professions, Events)
-    │   └── PreFabs/       # UI Prefabs (RoleCard, etc.)
+    │   └── PreFabs/       # UI Prefabs (RoleCard, RoomListItem, PlayerListItem, etc.)
     ├── Packages/
     └── ProjectSettings/
 ```
@@ -26,76 +28,76 @@ XipeLabsSimulador/
 - Unity Hub debe apuntar a `XipeLabsSimulador/unity/` (NO a la raíz)
 - La carpeta `Assets/` raíz fue eliminada para evitar clases duplicadas
 - Si Unity muestra errores de compilación, verificar que no haya scripts duplicados fuera de unity/
+- **Photon PUN2** y **PlayFab SDK** deben importarse manualmente en Unity (ver Sub-Fase 0 abajo)
 
 ## Stack Tecnológico
 - **Motor**: Unity 2022.3 LTS | C# (.NET 4.7.1)
 - **Backend**: Azure Functions (api/Xipe.Api/)
 - **Infra**: Bicep (infra/)
-- **Multiplayer futuro**: Photon PUN2
+- **Multiplayer**: Photon PUN2 (networking) + PlayFab (matchmaking)
 - **Plataforma**: Mobile (Android/iOS)
 
 ## Arquitectura
-- **Patrones**: Singleton (GameManager, SaveManager), Observer (UnityEvents), ScriptableObject (data-driven), State Machine (GamePhase)
+- **Patrones**: Singleton (GameManager, SaveManager, PhotonManager, PlayFabManager), Observer (UnityEvents), ScriptableObject (data-driven), State Machine (GamePhase), Master Client (Photon PUN2)
 - **Managers**: GameManager, TurnManager, EconomyManager, EventManager, UIManager, SaveManager
-- **UI Controllers**: MainMenuController, RoleSelectionController, RoleCard, DashboardPanel, EventPopup, FinancialChart, PlayerStatusPanel, TurnIndicator, GameSummaryController
+- **Multiplayer Managers**: PhotonManager (MonoBehaviourPunCallbacks), NetworkTurnManager (MonoBehaviourPun + RPCs), PlayFabManager
+- **UI Controllers**: MainMenuController, LobbyController, RoleSelectionController, RoleCard, DashboardPanel, EventPopup, FinancialChart, PlayerStatusPanel, TurnIndicator, GameBoardController, GameSummaryController, DisconnectDialog
 - **Data**: ProfessionData, FinancialEventData, GameConfigData, PlayerState, GameState
-- **Multiplayer (placeholders)**: NetworkManager, TurnSynchronizer
 - **Nota técnica**: Los ScriptableObjects usan campos privados con [SerializeField], requieren reflection para asignar por código
+
+## Arquitectura Multiplayer
+```
+Master Client (Host)                    Other Clients
+├─ Genera eventos aleatorios ──RPC──→   Reciben evento específico
+├─ Controla flujo de turnos ──RPC──→    Ven el mismo turno
+├─ Avanza fases del juego ───RPC──→     UI se actualiza
+└─ Carga escenas ──AutoSync──→          Misma escena automáticamente
+```
+- **PhotonManager**: Conexión, lobby, salas, custom properties. Reemplaza el antiguo NetworkManager stub.
+- **NetworkTurnManager**: RPCs para sincronizar turnos, eventos, dinero, fin de juego.
+- **PlayFabManager**: Auth con device ID, matchmaking con polling.
+- **Flujo multiplayer**: MainMenu → Photon Connect → Lobby → RoleSelection → GameBoard → GameSummary
+- **Flujo solo**: MainMenu → RoleSelection → GameBoard → GameSummary (sin cambios)
 
 ## Estado Actual (Febrero 2026)
 
-### Completado
-- [x] Merge de dev a master - estructura monorepo adoptada
-- [x] 30+ scripts C# (Managers, UI, Data, Utilities, Multiplayer placeholders)
-- [x] 3 escenas Unity: MainMenu, RoleSelection, BaseScene (GameBoard)
-- [x] ScriptableObjects existentes: 2 profesiones (Programmer, Doctor) y 3 eventos (CarRepair, BirthdayParty, SurpriseBonus)
-- [x] GameConfig.asset configurado
-- [x] Prefab RoleCard
-- [x] CI/CD workflows, API backend, Infra
-- [x] README.md con documentación completa
-- [x] Carpeta Assets/ raíz eliminada (evitar duplicados)
-- [x] Script CreateAllGameAssets.cs listo en unity/Assets/Scripts/Editor/
+### Completado - MVP 0.1 (Solo Mode)
+- [x] 30+ scripts C#, 4 escenas, 10 profesiones, 20 eventos
+- [x] Flujo completo: MainMenu → RoleSelection → GameBoard → GameSummary
+- [x] Turnos manuales (botón Next Turn), eventos con opciones
+- [x] EventPopup mejorado (3+ opciones visibles, impacto financiero)
+- [x] GameSummary con ranking, profesión, earned/spent
+- [x] Editor scripts para setup automatizado de escenas
 
-### Completado - Fase 1 (Completar Assets)
-- [x] Ejecutar en Unity: Tools > Finance Game > Create All Game Assets
-  - 10 profesiones creadas
-  - 20 eventos financieros creados
-  - GameConfig actualizado con todas las referencias
-- [x] Crear escena GameSummary (con GameSummaryController, PlayerRankItem prefab, Build Settings)
+### Completado - Fase 3 (Versión 0.2 - Multijugador) - CÓDIGO
+- [x] PhotonManager.cs - Conexión Photon PUN2, lobby, salas, custom properties
+- [x] NetworkTurnManager.cs - RPCs: turnos, eventos, dinero, fin de juego
+- [x] PlayFabManager.cs - Auth device ID, matchmaking con queue polling
+- [x] LobbyController.cs + RoomListItem.cs + PlayerListItem.cs - UI del lobby
+- [x] CreateLobbyScene.cs - Editor script para generar escena Lobby + prefabs
+- [x] DisconnectDialog.cs - Popup de desconexión mid-game
+- [x] GameManager modificado: PrepareMultiplayerGame(), StartMultiplayerGame(), disconnect handling
+- [x] TurnManager modificado: RequestNetworkTurn(), skip jugadores desconectados, money sync
+- [x] EventManager modificado: MasterGenerateAndBroadcastEvent(), TriggerSpecificEvent()
+- [x] MainMenuController modificado: Photon connect → Lobby scene
+- [x] RoleSelectionController modificado: sync profesión via Custom Properties
+- [x] GameBoardController modificado: Master Client controls Next Turn
+- [x] GameState: GetPlayerIndexById() helper
+- [x] PlayerState: isDisconnected field
+- [x] Eliminados stubs: NetworkManager.cs, TurnSynchronizer.cs
 
-### Completado - Fase 2 (Configurar Escenas y Flujo)
-- [x] SetupAllScenes.cs - Genera escena GameBoard con Canvas, TopBar, Dashboard, PlayerStatus, ActionArea, EventPopup, todos los Managers wired
-- [x] GameBoardController.cs (NUEVO) - Conecta botón Next Turn a TurnManager.StartNewTurn()
-- [x] TurnManager cambiado a flujo manual (botón Next Turn, ya no auto-start)
-  - Start() ya no llama StartNewTurn(), solo dispara OnTurnReady
-  - Nuevo UnityEvent OnTurnReady para habilitar/deshabilitar botón
-  - ProcessPlayerTurn espera en fases PlayerDecision Y RandomEvent
-- [x] EventManager corregido:
-  - GetAvailableEvents usa displayTurn = currentTurn + 1 (1-based vs 0-based)
-  - TriggerEvent siempre pone fase PlayerDecision (espera popup close)
-  - ResolveCurrentEvent() nuevo método público (popup lo llama al cerrar)
-- [x] EventPopup.OnCloseClicked() ahora llama ResolveCurrentEvent() antes de Hide()
-- [x] EventPopup parent se mantiene activo (sin SetActive(false)), popupPanel hijo controla visibilidad
-- [x] FixRoleSelectionScene.cs - Fix scroll: ContentSizeFitter, GridLayoutGroup 2 columnas 450x280
-- [x] FixRoleCardPrefab.cs - Fix layout: nombre arriba, icono centro (110x110), salario visible, descripción abajo
-- [x] Build Settings configurado: MainMenu(0), RoleSelection(1), GameBoard(2), GameSummary(3)
-
-### En Progreso - Testing y Pulido MVP 0.1
-- [x] Flujo MainMenu → RoleSelection funciona
-- [x] RoleSelection → GameBoard funciona (profesión seleccionada, confirm, carga GameBoard)
-- [x] Botón Next Turn funciona y dispara eventos
-- [x] EventPopup muestra eventos y se cierra correctamente
-- [x] Scroll de profesiones funciona con 10 cards
-- [x] RoleCard layout corregido (nombre arriba, salario visible)
-- [ ] Testing flujo completo GameBoard → GameSummary (12 turnos)
-- [ ] Verificar que GameSummary muestra ranking correctamente
-- [ ] Pulir UI visual (colores, espaciado, responsividad)
-
-### Pendiente - Fase 3 (Versión 0.2 - Multijugador)
-- [ ] Integración Photon PUN2
-- [ ] Lobby para 2-4 jugadores
-- [ ] Sincronización de turnos
-- [ ] Matchmaking con PlayFab
+### Pendiente - Fase 3 (Configuración manual requerida)
+- [ ] **Sub-Fase 0**: Importar Photon PUN2 Free en Unity (Asset Store)
+- [ ] **Sub-Fase 0**: Configurar Photon App ID (dashboard.photonengine.com)
+- [ ] **Sub-Fase 0**: Importar PlayFab SDK (.unitypackage)
+- [ ] **Sub-Fase 0**: Configurar PlayFab Title ID
+- [ ] Ejecutar: Tools > Finance Game > Create Lobby Scene
+- [ ] Agregar PhotonManager y NetworkTurnManager al GameObject de GameManager
+- [ ] Agregar PhotonView al GameObject de GameManager
+- [ ] Agregar PlayFabManager al GameObject de GameManager
+- [ ] Probar lobby con 2 instancias
+- [ ] Crear queue "MoneyMattersQueue" en PlayFab Game Manager
+- [ ] Probar matchmaking PlayFab
 
 ### Pendiente - Fase 4 (Versión 1.0 - Lanzamiento)
 - [ ] Tutorial interactivo
@@ -135,16 +137,19 @@ XipeLabsSimulador/
 - `unity/Assets/Scripts/Editor/CreateAllGameAssets.cs` - Crea TODOS los ScriptableObjects (menú Tools)
 - `unity/Assets/Scripts/Editor/SetupAllScenes.cs` - Genera escena GameBoard completa con UI y Managers
 - `unity/Assets/Scripts/Editor/CreateGameSummaryScene.cs` - Genera escena GameSummary
+- `unity/Assets/Scripts/Editor/CreateLobbyScene.cs` - Genera escena Lobby con UI + prefabs
 - `unity/Assets/Scripts/Editor/FixRoleSelectionScene.cs` - Fix scroll RoleSelection
 - `unity/Assets/Scripts/Editor/FixRoleCardPrefab.cs` - Fix layout RoleCard prefab
+- `unity/Assets/Scripts/Editor/FixEventPopup.cs` - Fix EventPopup layout (3+ opciones)
 - `unity/Assets/Scripts/Managers/` - GameManager, TurnManager, EconomyManager, EventManager, UIManager, SaveManager
-- `unity/Assets/Scripts/UI/GameBoard/GameBoardController.cs` - Conecta botón Next Turn
-- `unity/Assets/Scripts/UI/GameBoard/EventPopup.cs` - Popup de eventos (espera interacción del jugador)
-- `unity/Assets/Scripts/UI/` - Controllers de interfaz por escena
+- `unity/Assets/Scripts/Multiplayer/` - PhotonManager, NetworkTurnManager, PlayFabManager
+- `unity/Assets/Scripts/UI/Lobby/` - LobbyController, RoomListItem, PlayerListItem
+- `unity/Assets/Scripts/UI/Common/` - DisconnectDialog
+- `unity/Assets/Scripts/UI/GameBoard/` - GameBoardController, EventPopup
 - `unity/Assets/Scripts/Data/ScriptableObjects/` - ProfessionData, FinancialEventData, GameConfigData
 - `unity/Assets/Data/` - Assets ScriptableObject instanciados
-- `unity/Assets/Scenes/` - MainMenu, RoleSelection, GameBoard, GameSummary
-- `unity/Assets/PreFabs/UI/` - RoleCard.prefab, PlayerRankItem.prefab
+- `unity/Assets/Scenes/` - MainMenu, RoleSelection, GameBoard, GameSummary, Lobby
+- `unity/Assets/PreFabs/UI/` - RoleCard, PlayerRankItem, ChoiceButton, RoomListItem, PlayerListItem
 
 ## Convenciones
 - Commits: feat/fix/docs/style/refactor/test/chore

@@ -13,6 +13,7 @@ public class PlayerState
     public int totalSpent;
     public bool isReady;
     public bool isLocalPlayer;
+    public bool isDisconnected;
 
     public List<TransactionRecord> transactionHistory;
     public Dictionary<string, int> eventEncounters;

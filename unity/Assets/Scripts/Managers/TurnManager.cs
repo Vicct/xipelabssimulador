@@ -14,6 +14,7 @@ public class TurnManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private EconomyManager economyManager;
     [SerializeField] private EventManager eventManager;
+    [SerializeField] private NetworkTurnManager networkTurnManager;
 
     private GameState gameState;
     private bool isTurnInProgress;
@@ -25,6 +26,18 @@ public class TurnManager : MonoBehaviour
         gameState = GameManager.Instance.GameState;
         // Don't auto-start - wait for player to click Next Turn
         OnTurnReady?.Invoke();
+    }
+
+    /// <summary>
+    /// In multiplayer, GameBoardController calls this instead of StartNewTurn().
+    /// Only the Master Client can initiate turns via NetworkTurnManager.
+    /// </summary>
+    public void RequestNetworkTurn()
+    {
+        if (networkTurnManager != null)
+        {
+            networkTurnManager.MasterStartTurn();
+        }
     }
 
     public void StartNewTurn()
@@ -46,6 +59,13 @@ public class TurnManager : MonoBehaviour
         {
             gameState.currentPlayerIndex = i;
             PlayerState currentPlayer = gameState.GetCurrentPlayer();
+
+            // Skip disconnected players in multiplayer
+            if (currentPlayer.isDisconnected)
+            {
+                Debug.Log($"Skipping disconnected player: {currentPlayer.playerName}");
+                continue;
+            }
 
             yield return StartCoroutine(ProcessPlayerTurn(currentPlayer));
         }
@@ -73,6 +93,13 @@ public class TurnManager : MonoBehaviour
         // Pay salary
         gameState.currentPhase = GamePhase.EarningIncome;
         economyManager.PaySalary(player);
+
+        // In multiplayer, sync money after salary
+        if (gameState.gameMode == GameMode.Multiplayer && networkTurnManager != null)
+        {
+            networkTurnManager.BroadcastMoneyUpdate(gameState.currentPlayerIndex);
+        }
+
         yield return new WaitForSeconds(0.5f);
 
         // Random event
@@ -84,6 +111,12 @@ public class TurnManager : MonoBehaviour
             // Wait for player to resolve event (close popup or make choice)
             yield return new WaitUntil(() => gameState.currentPhase != GamePhase.PlayerDecision
                                             && gameState.currentPhase != GamePhase.RandomEvent);
+
+            // In multiplayer, sync money after event resolution
+            if (gameState.gameMode == GameMode.Multiplayer && networkTurnManager != null)
+            {
+                networkTurnManager.BroadcastMoneyUpdate(gameState.currentPlayerIndex);
+            }
         }
 
         yield return new WaitForSeconds(0.3f);

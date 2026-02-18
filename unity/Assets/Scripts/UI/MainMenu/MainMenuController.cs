@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button multiplayerButton;
     [SerializeField] private Button continueButton;
     [SerializeField] private Button quitButton;
+    [SerializeField] private Text statusText;
 
     void Start()
     {
@@ -24,6 +26,19 @@ public class MainMenuController : MonoBehaviour
         {
             continueButton.interactable = false;
         }
+
+        if (statusText != null)
+        {
+            statusText.text = "";
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (PhotonManager.Instance != null)
+        {
+            PhotonManager.Instance.OnConnectedToPhoton.RemoveListener(OnPhotonConnected);
+        }
     }
 
     void OnSoloClicked()
@@ -35,7 +50,31 @@ public class MainMenuController : MonoBehaviour
     void OnMultiplayerClicked()
     {
         Debug.Log("Multiplayer mode selected");
-        GameManager.Instance.StartNewGame(GameMode.Multiplayer);
+
+        GameManager.Instance.PrepareMultiplayerGame();
+
+        multiplayerButton.interactable = false;
+        soloButton.interactable = false;
+
+        if (statusText != null)
+        {
+            statusText.text = "Connecting to server...";
+        }
+
+        PhotonManager.Instance.OnConnectedToPhoton.AddListener(OnPhotonConnected);
+        PhotonManager.Instance.ConnectToPhoton("Player_" + Random.Range(1000, 9999));
+    }
+
+    void OnPhotonConnected()
+    {
+        PhotonManager.Instance.OnConnectedToPhoton.RemoveListener(OnPhotonConnected);
+
+        if (statusText != null)
+        {
+            statusText.text = "Connected! Loading lobby...";
+        }
+
+        SceneManager.LoadScene("Lobby");
     }
 
     void OnContinueClicked()

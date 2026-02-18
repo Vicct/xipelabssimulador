@@ -60,6 +60,11 @@ public class GameState
         }
         return winner;
     }
+
+    public int GetPlayerIndexById(string playerId)
+    {
+        return players.FindIndex(p => p.playerId == playerId);
+    }
 }
 
 public enum GameMode

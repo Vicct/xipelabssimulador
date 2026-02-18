@@ -14,13 +14,22 @@ public class GameBoardController : MonoBehaviour
     [Header("References")]
     [SerializeField] private TurnManager turnManager;
 
+    private bool isMultiplayer;
+
     void Start()
     {
+        isMultiplayer = GameManager.Instance.GameState.gameMode == GameMode.Multiplayer;
+
         nextTurnButton.onClick.AddListener(OnNextTurnClicked);
 
         if (saveButton != null)
         {
             saveButton.onClick.AddListener(OnSaveClicked);
+            // Disable save in multiplayer
+            if (isMultiplayer)
+            {
+                saveButton.gameObject.SetActive(false);
+            }
         }
 
         // Listen for when a turn finishes to re-enable the button
@@ -42,7 +51,13 @@ public class GameBoardController : MonoBehaviour
 
     void OnNextTurnClicked()
     {
-        if (turnManager != null && !turnManager.IsTurnInProgress)
+        if (turnManager == null || turnManager.IsTurnInProgress) return;
+
+        if (isMultiplayer)
+        {
+            turnManager.RequestNetworkTurn();
+        }
+        else
         {
             turnManager.StartNewTurn();
         }
@@ -57,11 +72,22 @@ public class GameBoardController : MonoBehaviour
 
     void OnTurnReady()
     {
-        // Re-enable button when turn is done
-        nextTurnButton.interactable = true;
         int nextTurn = GameManager.Instance.CurrentTurn + 1;
         int totalTurns = GameManager.Instance.Config.TotalTurns;
-        nextTurnButton.GetComponentInChildren<Text>().text = $"Next Turn ({nextTurn}/{totalTurns})";
+
+        if (isMultiplayer)
+        {
+            bool isMaster = PhotonManager.Instance != null && PhotonManager.Instance.IsMasterClient;
+            nextTurnButton.interactable = isMaster;
+            nextTurnButton.GetComponentInChildren<Text>().text = isMaster
+                ? $"Next Turn ({nextTurn}/{totalTurns})"
+                : $"Waiting for host... ({nextTurn}/{totalTurns})";
+        }
+        else
+        {
+            nextTurnButton.interactable = true;
+            nextTurnButton.GetComponentInChildren<Text>().text = $"Next Turn ({nextTurn}/{totalTurns})";
+        }
     }
 
     void OnSaveClicked()

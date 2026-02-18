@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Photon.Pun;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -24,6 +25,20 @@ public class EventManager : MonoBehaviour
 
     public bool TriggerRandomEvent(PlayerState player)
     {
+        // In multiplayer, only Master Client generates events
+        if (gameState.gameMode == GameMode.Multiplayer)
+        {
+            if (!PhotonNetwork.IsMasterClient)
+            {
+                // Non-master clients wait for RPC via NetworkTurnManager
+                return false;
+            }
+
+            // Master Client generates the event and broadcasts
+            return MasterGenerateAndBroadcastEvent(player);
+        }
+
+        // Solo mode: original logic
         float roll = Random.value;
         if (roll > config.EventChancePerTurn)
         {
@@ -46,6 +61,50 @@ public class EventManager : MonoBehaviour
 
         TriggerEvent(selectedEvent, player);
         return true;
+    }
+
+    /// <summary>
+    /// Master Client generates an event and broadcasts it via NetworkTurnManager RPC.
+    /// The RPC calls TriggerSpecificEvent on all clients (including Master).
+    /// </summary>
+    bool MasterGenerateAndBroadcastEvent(PlayerState player)
+    {
+        float roll = Random.value;
+        if (roll > config.EventChancePerTurn)
+        {
+            Debug.Log($"[Master] No event this turn (roll: {roll:F2})");
+            NetworkTurnManager ntm = FindObjectOfType<NetworkTurnManager>();
+            ntm?.MasterBroadcastNoEvent(gameState.currentPlayerIndex);
+            return false;
+        }
+
+        List<FinancialEventData> availableEvents = GetAvailableEvents(player);
+        if (availableEvents.Count == 0)
+        {
+            NetworkTurnManager ntm = FindObjectOfType<NetworkTurnManager>();
+            ntm?.MasterBroadcastNoEvent(gameState.currentPlayerIndex);
+            return false;
+        }
+
+        FinancialEventData selectedEvent = SelectWeightedEvent(availableEvents);
+        if (selectedEvent == null)
+        {
+            return false;
+        }
+
+        // Broadcast event to all clients (including self)
+        NetworkTurnManager ntm2 = FindObjectOfType<NetworkTurnManager>();
+        ntm2?.MasterBroadcastEvent(selectedEvent.name, gameState.currentPlayerIndex);
+        return true;
+    }
+
+    /// <summary>
+    /// Called by NetworkTurnManager RPC on ALL clients (including Master).
+    /// Triggers a specific event without random selection.
+    /// </summary>
+    public void TriggerSpecificEvent(FinancialEventData eventData, PlayerState player)
+    {
+        TriggerEvent(eventData, player);
     }
 
     List<FinancialEventData> GetAvailableEvents(PlayerState player)
